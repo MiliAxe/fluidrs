@@ -3,14 +3,17 @@ mod grid;
 
 fn main() {
     let (mut rl, thread) = raylib::init()
-        .size(config::SIZE, config::SIZE)
+        .size(
+            config::SIZE.try_into().unwrap(),
+            config::SIZE.try_into().unwrap(),
+        )
         .title("fluidrs")
         .build();
 
-    let sample_grid = grid::Grid::new(config::SIZE, config::SCALE);
+    let simulator = grid::Simulator::new(0.0, 0.0, 0.0);
     while !rl.window_should_close() {
         let mut d = rl.begin_drawing(&thread);
 
-        sample_grid.draw(&mut d);
+        simulator.draw(&mut d);
     }
 }
