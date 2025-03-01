@@ -77,7 +77,7 @@ impl Grid {
         // I am totally aware of the fact that this function is super
         // unreadable. This is merely a copy paste of mike ash's code
         // for my own implementation
-        for x in 1..self.size - 1 {
+        for x in 1..(self.size - 1) {
             let left_value = get(&self.cells[1][x]);
             let right_value = get(&self.cells[self.size - 2][x]);
             match action_type {
@@ -96,7 +96,7 @@ impl Grid {
             }
         }
 
-        for y in 1..self.size - 1 {
+        for y in 1..(self.size - 1) {
             let top_value = get(&self.cells[y][1]);
             let bottom_value = get(&self.cells[y][self.size - 2]);
             match action_type {
@@ -130,105 +130,6 @@ impl Grid {
         set(&mut self.cells[self.size - 1][self.size - 1], bottom_right);
     }
 
-    // fn set_bnd(&mut self, action_type: ActionType) {
-    //     // I am totally aware of the fact that this function is super
-    //     // unreadable. This is merely a copy paste of mike ash's code
-    //     // for my own implementation
-    //     for x in 1..self.size - 1 {
-    //         match action_type {
-    //             ActionType::VelX => {
-    //                 self.cells[0][x].velocity.x = self.cells[1][x].velocity.x;
-    //                 self.cells[self.size - 1][x].velocity.x =
-    //                     self.cells[self.size - 2][x].velocity.x;
-    //             }
-    //             ActionType::VelY => {
-    //                 self.cells[0][x].velocity.y = self.cells[1][x].velocity.y;
-    //                 self.cells[self.size - 1][x].velocity.y =
-    //                     -self.cells[self.size - 2][x].velocity.y;
-    //             }
-    //             ActionType::Density => {
-    //                 self.cells[0][x].density = self.cells[1][x].density;
-    //                 self.cells[self.size - 1][x].density = self.cells[self.size - 2][x].density;
-    //             }
-    //         }
-    //     }
-
-    //     for y in 1..self.size - 1 {
-    //         match action_type {
-    //             ActionType::VelX => {
-    //                 self.cells[y][0].velocity.x = self.cells[y][1].velocity.x;
-    //                 self.cells[y][self.size - 1].velocity.x =
-    //                     -self.cells[y][self.size - 2].velocity.x;
-    //             }
-    //             ActionType::VelY => {
-    //                 self.cells[y][0].velocity.y = self.cells[y][1].velocity.y;
-    //                 self.cells[y][self.size - 1].velocity.y =
-    //                     self.cells[y][self.size - 2].velocity.y;
-    //             }
-    //             ActionType::Density => {
-    //                 self.cells[y][0].density = self.cells[y][1].density;
-    //                 self.cells[y][self.size - 1].density = self.cells[y][self.size - 2].density;
-    //             }
-    //         }
-    //     }
-
-    //     match action_type {
-    //         ActionType::VelX => {
-    //             self.cells[0][0].velocity.x =
-    //                 0.5 * self.cells[0][1].velocity.x + 0.5 * self.cells[1][0].velocity.x;
-    //             self.cells[0][self.size - 1].velocity.x = 0.5
-    //                 * self.cells[1][self.size - 1].velocity.x
-    //                 + 0.5 * self.cells[0][self.size - 2].velocity.x;
-    //             self.cells[self.size - 1][0].velocity.x = 0.5
-    //                 * self.cells[self.size - 2][0].velocity.x
-    //                 + 0.5 * self.cells[self.size - 1][1].velocity.x;
-    //             self.cells[self.size - 1][self.size - 1].velocity.x = 0.5
-    //                 * self.cells[self.size - 1][self.size - 2].velocity.x
-    //                 + 0.5 * self.cells[self.size - 2][self.size - 1].velocity.x;
-    //         }
-    //         ActionType::VelY => {
-    //             self.cells[0][0].velocity.y =
-    //                 0.5 * self.cells[0][1].velocity.y + 0.5 * self.cells[1][0].velocity.y;
-    //             self.cells[0][self.size - 1].velocity.y = 0.5
-    //                 * self.cells[1][self.size - 1].velocity.y
-    //                 + 0.5 * self.cells[0][self.size - 2].velocity.y;
-    //             self.cells[self.size - 1][0].velocity.y = 0.5
-    //                 * self.cells[self.size - 2][0].velocity.y
-    //                 + 0.5 * self.cells[self.size - 1][1].velocity.y;
-    //             self.cells[self.size - 1][self.size - 1].velocity.y = 0.5
-    //                 * self.cells[self.size - 1][self.size - 2].velocity.y
-    //                 + 0.5 * self.cells[self.size - 2][self.size - 1].velocity.y;
-    //         }
-    //         ActionType::Density => {
-    //             self.cells[0][0].density =
-    //                 0.5 * self.cells[0][1].density + 0.5 * self.cells[1][0].density;
-    //             self.cells[0][self.size - 1].density = 0.5 * self.cells[1][self.size - 1].density
-    //                 + 0.5 * self.cells[0][self.size - 2].density;
-    //             self.cells[self.size - 1][0].density = 0.5 * self.cells[self.size - 2][0].density
-    //                 + 0.5 * self.cells[self.size - 1][1].density;
-    //             self.cells[self.size - 1][self.size - 1].density = 0.5
-    //                 * self.cells[self.size - 1][self.size - 2].density
-    //                 + 0.5 * self.cells[self.size - 2][self.size - 1].density;
-    //         }
-    //     }
-    // }
-
-    // fn get_value(&mut self, action_type: &ActionType, x: usize, y: usize) -> &mut f32 {
-    //     match action_type {
-    //         ActionType::VelX => &mut self.cells[y][x].velocity.x,
-    //         ActionType::VelY => &mut self.cells[y][x].velocity.y,
-    //         ActionType::Density => &mut self.cells[y][x].density,
-    //     }
-    // }
-
-    // fn get_previous_value(&mut self, action_type: &ActionType, x: usize, y: usize) -> &mut f32 {
-    //     match action_type {
-    //         ActionType::VelX => &mut self.cells[y][x].velocity_0.x,
-    //         ActionType::VelY => &mut self.cells[y][x].velocity_0.y,
-    //         ActionType::Density => &mut self.cells[y][x].density_0,
-    //     }
-    // }
-
     fn lin_solve_generic<FSet, FGet, FPrevGet>(
         &mut self,
         action_type: ActionType,
@@ -244,8 +145,8 @@ impl Grid {
     {
         let c_recip = 1.0 / c;
         for _k in 0..super::config::ITER {
-            for y in 1..self.size - 1 {
-                for x in 1..self.size - 1 {
+            for y in 1..(self.size - 1) {
+                for x in 1..(self.size - 1) {
                     let previous_element = prev_get(&self.cells[y][x]);
 
                     let left_neighbor = get(&self.cells[y][x - 1]);
@@ -268,29 +169,11 @@ impl Grid {
 
         self.set_bnd_generic(action_type, get, set);
     }
+}
 
-    // // Used for solving an equation linearly. I don't know what is happening here really
-    // fn lin_solve(&mut self, action_type: ActionType, a: f32, c: f32) {
-    //     let c_recip = 1.0 / c;
-    //     for k in 0..super::config::ITER {
-    //         for y in 1..self.size - 1 {
-    //             for x in 1..self.size - 1 {
-    //                 let previous_element = *self.get_previous_value(&action_type, x, y);
-
-    //                 let left_neighbor = *self.get_value(&action_type, x - 1, y);
-    //                 let right_neighbor = *self.get_value(&action_type, x + 1, y);
-    //                 let bottom_neighbor = *self.get_value(&action_type, x, y - 1);
-    //                 let top_neighbor = *self.get_value(&action_type, x, y + 1);
-
-    //                 *self.get_value(&action_type, x, y) = (previous_element
-    //                     + a * (left_neighbor + right_neighbor + bottom_neighbor + top_neighbor))
-    //                     * c_recip;
-    //             }
-    //         }
-    //     }
-
-    //     self.set_bnd(action_type);
-    // }
+enum ProjectAction {
+    ToPrevious,
+    ToCurrent,
 }
 
 impl Simulator {
@@ -304,8 +187,13 @@ impl Simulator {
     }
 
     fn diffuse(&mut self, action_type: ActionType) {
+        let spread_factor = match action_type {
+            ActionType::VelX | ActionType::VelY => self.viscosity,
+            ActionType::Density => self.diffusion,
+        };
+
         let a = self.deltatime
-            * self.diffusion
+            * spread_factor
             * (self.grid.size as f32 - 2.0)
             * (self.grid.size as f32 - 2.0);
 
@@ -330,9 +218,185 @@ impl Simulator {
             .lin_solve_generic(action_type, get, prev_get, set, a, 1.0 + 6.0 * a);
     }
 
+    // project is called twice in the step function. Once for projecting
+    // v0 and once for projecting v. Because of that, we have two types of
+    // actions. one is ToPrevious and one is ToCurrent. This isn't really
+    // following clean coding principles because it really makes the implementation
+    // tied to the project. But this at least makes the step function way more readable
+    // which is what matters.
+    fn project(&mut self, action_type: ProjectAction) {
+        let get_x = match action_type {
+            ProjectAction::ToPrevious => |cell: &Cell| cell.velocity_0.x,
+            ProjectAction::ToCurrent => |cell: &Cell| cell.velocity.x,
+        };
+        let get_y = match action_type {
+            ProjectAction::ToPrevious => |cell: &Cell| cell.velocity_0.y,
+            ProjectAction::ToCurrent => |cell: &Cell| cell.velocity.y,
+        };
+        let set_x = match action_type {
+            ProjectAction::ToPrevious => |cell: &mut Cell, value: f32| cell.velocity_0.x = value,
+            ProjectAction::ToCurrent => |cell: &mut Cell, value: f32| cell.velocity.x = value,
+        };
+        let set_y = match action_type {
+            ProjectAction::ToPrevious => |cell: &mut Cell, value: f32| cell.velocity_0.y = value,
+            ProjectAction::ToCurrent => |cell: &mut Cell, value: f32| cell.velocity.y = value,
+        };
+
+        let get_div = match action_type {
+            ProjectAction::ToPrevious => |cell: &Cell| cell.velocity.x,
+            ProjectAction::ToCurrent => |cell: &Cell| cell.velocity_0.x,
+        };
+        let get_pressure = match action_type {
+            ProjectAction::ToPrevious => |cell: &Cell| cell.velocity.y,
+            ProjectAction::ToCurrent => |cell: &Cell| cell.velocity_0.y,
+        };
+        let set_pressure = match action_type {
+            ProjectAction::ToPrevious => |cell: &mut Cell, value: f32| cell.velocity_0.x = value,
+            ProjectAction::ToCurrent => |cell: &mut Cell, value: f32| cell.velocity.x = value,
+        };
+        let set_div = match action_type {
+            ProjectAction::ToPrevious => |cell: &mut Cell, value: f32| cell.velocity_0.y = value,
+            ProjectAction::ToCurrent => |cell: &mut Cell, value: f32| cell.velocity.y = value,
+        };
+
+        let size = self.grid.size as f32;
+
+        for y in 1..self.grid.size - 1 {
+            for x in 1..self.grid.size - 1 {
+                let div_value = -0.5
+                    * (get_x(&self.grid.cells[y][x + 1]) - get_x(&self.grid.cells[y][x - 1])
+                        + get_y(&self.grid.cells[y + 1][x])
+                        - get_y(&self.grid.cells[y - 1][x]))
+                    / size;
+
+                set_div(&mut self.grid.cells[y][x], div_value);
+                set_pressure(&mut self.grid.cells[y][x], 0.0);
+            }
+        }
+
+        self.grid
+            .set_bnd_generic(ActionType::Density, get_div, set_div);
+        self.grid
+            .set_bnd_generic(ActionType::Density, get_pressure, set_pressure);
+        self.grid.lin_solve_generic(
+            ActionType::Density,
+            get_pressure,
+            get_div,
+            set_pressure,
+            1.0,
+            6.0,
+        );
+
+        for y in 1..self.grid.size - 1 {
+            for x in 1..self.grid.size - 1 {
+                let current_x = get_x(&self.grid.cells[y][x]);
+                let current_y = get_x(&self.grid.cells[y][x]);
+
+                let x_difference = 0.5
+                    * (get_pressure(&self.grid.cells[y][x + 1])
+                        - get_pressure(&self.grid.cells[y][x - 1]))
+                    * size;
+                let y_difference = 0.5
+                    * (get_pressure(&self.grid.cells[y + 1][x])
+                        - get_pressure(&self.grid.cells[y - 1][x]))
+                    * size;
+
+                set_x(&mut self.grid.cells[y][x], current_x - x_difference);
+                set_y(&mut self.grid.cells[y][x], current_y - y_difference);
+            }
+        }
+
+        self.grid.set_bnd_generic(ActionType::VelX, get_x, set_x);
+        self.grid.set_bnd_generic(ActionType::VelY, get_y, set_y);
+    }
+
+    fn advect(&mut self, action_type: ActionType) {
+        let size = self.grid.size as f32;
+        let dt = self.deltatime;
+
+        let get_prev = match action_type {
+            ActionType::VelX => |cell: &Cell| cell.velocity_0.x,
+            ActionType::VelY => |cell: &Cell| cell.velocity_0.y,
+            ActionType::Density => |cell: &Cell| cell.density_0,
+        };
+        let set_current = match action_type {
+            ActionType::VelX => |cell: &mut Cell, value: f32| cell.velocity.x = value,
+            ActionType::VelY => |cell: &mut Cell, value: f32| cell.velocity.y = value,
+            ActionType::Density => |cell: &mut Cell, value: f32| cell.density = value,
+        };
+        let get_vel_x = match action_type {
+            ActionType::VelX => |cell: &Cell| cell.velocity_0.x,
+            ActionType::VelY => |cell: &Cell| cell.velocity_0.x,
+            ActionType::Density => |cell: &Cell| cell.velocity.x,
+        };
+        let get_vel_y = match action_type {
+            ActionType::VelX => |cell: &Cell| cell.velocity_0.y,
+            ActionType::VelY => |cell: &Cell| cell.velocity_0.y,
+            ActionType::Density => |cell: &Cell| cell.velocity.y,
+        };
+
+        let mut new_values = vec![vec![0.0; self.grid.size]; self.grid.size];
+
+        for y in 1..self.grid.size - 1 {
+            for x in 1..self.grid.size - 1 {
+                let cell = &self.grid.cells[y][x];
+                let vx = get_vel_x(cell);
+                let vy = get_vel_y(cell);
+
+                let mut x_prev = x as f32 - dt * vx * (size - 2.0);
+                let mut y_prev = y as f32 - dt * vy * (size - 2.0);
+
+                x_prev = x_prev.max(0.5).min(size - 1.5);
+                y_prev = y_prev.max(0.5).min(size - 1.5);
+
+                let x0 = x_prev.floor() as usize;
+                let x1 = (x0 + 1).min(self.grid.size - 1);
+                let y0 = y_prev.floor() as usize;
+                let y1 = (y0 + 1).min(self.grid.size - 1);
+
+                let sx = x_prev - x0 as f32;
+                let sy = y_prev - y0 as f32;
+                let s0 = 1.0 - sx;
+                let t0 = 1.0 - sy;
+
+                let value = s0 * t0 * get_prev(&self.grid.cells[y0][x0])
+                    + sx * t0 * get_prev(&self.grid.cells[y0][x1])
+                    + s0 * sy * get_prev(&self.grid.cells[y1][x0])
+                    + sx * sy * get_prev(&self.grid.cells[y1][x1]);
+
+                new_values[y][x] = value;
+            }
+        }
+
+        for y in 1..self.grid.size - 1 {
+            for x in 1..self.grid.size - 1 {
+                set_current(&mut self.grid.cells[y][x], new_values[y][x]);
+            }
+        }
+
+        let get_current = match action_type {
+            ActionType::VelX => |cell: &Cell| cell.velocity.x,
+            ActionType::VelY => |cell: &Cell| cell.velocity.y,
+            ActionType::Density => |cell: &Cell| cell.density,
+        };
+
+        self.grid
+            .set_bnd_generic(action_type, get_current, set_current);
+    }
+
     pub fn step(&mut self) {
         self.diffuse(ActionType::VelX);
         self.diffuse(ActionType::VelY);
+
+        self.project(ProjectAction::ToPrevious);
+
+        self.advect(ActionType::VelX);
+        self.advect(ActionType::VelY);
+
+        self.project(ProjectAction::ToCurrent);
+
+        self.diffuse(ActionType::Density);
+        self.advect(ActionType::Density);
     }
 
     // Now it is time to write project... Here are what I should first consider and answer
@@ -494,7 +558,7 @@ impl Grid {
         Grid {
             cells: grid,
             scale,
-            size,
+            size: grid_count,
         }
     }
 

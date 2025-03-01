@@ -10,10 +10,11 @@ fn main() {
         .title("fluidrs")
         .build();
 
-    let simulator = grid::Simulator::new(0.0, 0.0, 0.0);
+    let mut simulator = grid::Simulator::new(5.0, 2.0, 10.0);
     while !rl.window_should_close() {
         let mut d = rl.begin_drawing(&thread);
 
+        simulator.step();
         simulator.draw(&mut d);
     }
 }
