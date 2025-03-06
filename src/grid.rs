@@ -1,4 +1,6 @@
+use imgui::{Context, FontSource};
 use raylib::prelude::*;
+use raylib_imgui_rs::Renderer;
 
 struct Velocity {
     x: f32,
@@ -24,6 +26,10 @@ pub struct Simulator {
     viscosity: f32,
     diffusion: f32,
     deltatime: f32,
+    raylib_handle: RaylibHandle,
+    raylib_thread: RaylibThread,
+    imgui_context: imgui::Context,
+    imgui_renderer: raylib_imgui_rs::Renderer,
 }
 
 enum ActionType {
@@ -167,11 +173,28 @@ enum ProjectAction {
 
 impl Simulator {
     pub fn new(viscosity: f32, diffusion: f32, deltatime: f32) -> Simulator {
+        let (mut raylib_handle, raylib_thread) = raylib::init()
+            .size(
+                super::config::SIZE.try_into().unwrap(),
+                super::config::SIZE.try_into().unwrap(),
+            )
+            .title("fluidrs")
+            .build();
+
+        let mut imgui_context = Context::create();
+
+        let imgui_renderer =
+            Renderer::create(&mut imgui_context, &mut raylib_handle, &raylib_thread);
+
         Simulator {
             grid: Grid::new(),
             viscosity,
             diffusion,
             deltatime,
+            raylib_handle,
+            raylib_thread,
+            imgui_context,
+            imgui_renderer,
         }
     }
 
@@ -384,34 +407,45 @@ impl Simulator {
         self.grid.update_cell_colors();
     }
 
+    pub fn draw(&mut self) {
+        let mut d = self.raylib_handle.begin_drawing(&self.raylib_thread);
+        self.grid.draw(&mut d);
 
-    pub fn draw(&self, d: &mut RaylibDrawHandle) {
-        self.grid.draw(d);
+        self.imgui_renderer.render(&mut self.imgui_context, &mut d);
     }
 
-    pub fn update_mouse_density(&mut self, rl: &RaylibHandle) {
-        if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
-            let mouse_pos = rl.get_mouse_position();
+    pub fn update_mouse_density(&mut self) {
+        if self
+            .raylib_handle
+            .is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)
+        {
+            let mouse_pos = self.raylib_handle.get_mouse_position();
 
             let cell_x = (mouse_pos.x / self.grid.scale as f32) as usize;
             let cell_y = (mouse_pos.y / self.grid.scale as f32) as usize;
 
             // add density to a 10x10 square
-            for i in 0..5 {
-                for j in 0..5 {
-                    self.grid.add_density(cell_x + i, cell_y + j, 1000.0);
+            for i in 0..3 {
+                for j in 0..3 {
+                    self.grid.add_density(cell_x + i, cell_y + j, 100.0);
+                    self.grid.add_density(cell_x - i, cell_y - j, 100.0);
+                    self.grid.add_density(cell_x + i, cell_y - j, 100.0);
+                    self.grid.add_density(cell_x - i, cell_y + j, 100.0);
                 }
             }
         }
     }
 
-    pub fn update_mouse_velocity(&mut self, rl: &RaylibHandle, last_mouse_pos: &mut Option<Vector2>) {
-        if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+    pub fn update_mouse_velocity(&mut self, last_mouse_pos: &mut Option<Vector2>) {
+        if self
+            .raylib_handle
+            .is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)
+        {
             if last_mouse_pos.is_none() {
-                *last_mouse_pos = Some(rl.get_mouse_position());
+                *last_mouse_pos = Some(self.raylib_handle.get_mouse_position());
             }
 
-            let current_mouse_pos = rl.get_mouse_position();
+            let current_mouse_pos = self.raylib_handle.get_mouse_position();
             let velocity_vector = Vector2::new(
                 (current_mouse_pos.x - last_mouse_pos.unwrap().x) * 5.0,
                 (current_mouse_pos.y - last_mouse_pos.unwrap().y) * 5.0,
@@ -423,22 +457,20 @@ impl Simulator {
             self.grid.add_velocity(cell_x, cell_y, velocity_vector);
 
             *last_mouse_pos = Some(current_mouse_pos);
-        }
-        else {
+        } else {
             *last_mouse_pos = Option::<Vector2>::None;
         }
     }
 
-    pub fn run(&mut self, rl: &mut RaylibHandle, thread: RaylibThread) {
+    pub fn run(&mut self) {
         let mut last_mouse_pos = Option::<Vector2>::None;
 
-        while !rl.window_should_close() {
-            self.update_mouse_density(rl);
-            self.update_mouse_velocity(rl, &mut last_mouse_pos);
+        while !self.raylib_handle.window_should_close() {
+            self.update_mouse_density();
+            self.update_mouse_velocity(&mut last_mouse_pos);
 
-            let mut d = rl.begin_drawing(&thread);
             self.step();
-            self.draw(&mut d);
+            self.draw();
         }
     }
 }
