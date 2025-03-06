@@ -1,4 +1,4 @@
-use crate::grid::{ActionType, Cell, Grid, Velocity};
+use crate::grid::{ActionType, Cell, Grid};
 use imgui::Context;
 use raylib::prelude::*;
 use raylib_imgui_rs::Renderer;
@@ -16,6 +16,7 @@ pub struct Simulator {
     raylib_thread: RaylibThread,
     imgui_context: imgui::Context,
     imgui_renderer: raylib_imgui_rs::Renderer,
+    brush_size: usize,
 }
 
 impl Simulator {
@@ -42,6 +43,7 @@ impl Simulator {
             raylib_thread,
             imgui_context,
             imgui_renderer,
+            brush_size: 1,
         }
     }
 
@@ -257,7 +259,6 @@ impl Simulator {
     pub fn draw(&mut self) {
         let mut d = self.raylib_handle.begin_drawing(&self.raylib_thread);
         self.grid.draw(&mut d);
-
         self.imgui_renderer.render(&mut self.imgui_context, &mut d);
     }
 
@@ -272,21 +273,40 @@ impl Simulator {
             let cell_y = (mouse_pos.y / self.grid.scale as f32) as usize;
 
             // add density to a 10x10 square
-            for i in 0..3 {
-                for j in 0..3 {
-                    self.grid.add_density(cell_x + i, cell_y + j, 100.0);
-                    self.grid.add_density(cell_x - i, cell_y - j, 100.0);
-                    self.grid.add_density(cell_x + i, cell_y - j, 100.0);
-                    self.grid.add_density(cell_x - i, cell_y + j, 100.0);
+            for i in 0..self.brush_size {
+                for j in 0..self.brush_size {
+                    self.grid.add_density(cell_x.saturating_add(i), cell_y.saturating_add(j), 100.0);
+                    self.grid.add_density(cell_x.saturating_sub(i), cell_y.saturating_sub(j), 100.0);
+                    self.grid.add_density(cell_x.saturating_add(i), cell_y.saturating_sub(j), 100.0);
+                    self.grid.add_density(cell_x.saturating_sub(i), cell_y.saturating_add(j), 100.0);
                 }
             }
         }
     }
 
+    fn render_ui(&mut self) {
+        self.imgui_renderer.update(&mut self.imgui_context, &mut self.raylib_handle);
+        let ui = self.imgui_context.frame();
+
+        let mut viscosity_slider_value = (self.viscosity * 10000.0) as i32;
+        let mut diffusion_slider_value = (self.diffusion * 100000.0) as i32;
+
+        ui.window("Settings")
+            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
+            .build(|| {
+                ui.slider("Viscosity", 0, 100, &mut viscosity_slider_value);
+                ui.slider("Diffusion",  0, 100, &mut diffusion_slider_value);
+                ui.slider("Brush Size", 1, 10, &mut self.brush_size);
+            });
+
+        self.viscosity = viscosity_slider_value as f32 / 10000.0;
+        self.diffusion = diffusion_slider_value as f32 / 100000.0;
+    }
+
     pub fn update_mouse_velocity(&mut self, last_mouse_pos: &mut Option<Vector2>) {
         if self
             .raylib_handle
-            .is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)
+            .is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT)
         {
             if last_mouse_pos.is_none() {
                 *last_mouse_pos = Some(self.raylib_handle.get_mouse_position());
@@ -294,14 +314,22 @@ impl Simulator {
 
             let current_mouse_pos = self.raylib_handle.get_mouse_position();
             let velocity_vector = Vector2::new(
-                (current_mouse_pos.x - last_mouse_pos.unwrap().x) * 5.0,
-                (current_mouse_pos.y - last_mouse_pos.unwrap().y) * 5.0,
+                (current_mouse_pos.x - last_mouse_pos.unwrap().x) * 2.0,
+                (current_mouse_pos.y - last_mouse_pos.unwrap().y) * 2.0,
             );
 
             let cell_x = (current_mouse_pos.x / self.grid.scale as f32) as usize;
             let cell_y = (current_mouse_pos.y / self.grid.scale as f32) as usize;
 
-            self.grid.add_velocity(cell_x, cell_y, velocity_vector);
+            // self.grid.add_velocity(cell_x, cell_y, velocity_vector);
+            for i in 0..self.brush_size/2 {
+                for j in 0..self.brush_size/2 {
+                    self.grid.add_velocity(cell_x.saturating_add(i), cell_y.saturating_add(j), velocity_vector);
+                    self.grid.add_velocity(cell_x.saturating_sub(i), cell_y.saturating_sub(j), velocity_vector);
+                    self.grid.add_velocity(cell_x.saturating_add(i), cell_y.saturating_sub(j), velocity_vector);
+                    self.grid.add_velocity(cell_x.saturating_sub(i), cell_y.saturating_add(j), velocity_vector);
+                }
+            }
 
             *last_mouse_pos = Some(current_mouse_pos);
         } else {
@@ -316,47 +344,10 @@ impl Simulator {
             self.update_mouse_density();
             self.update_mouse_velocity(&mut last_mouse_pos);
 
+            self.render_ui();
+
             self.step();
             self.draw();
-        }
-    }
-}
-
-impl Grid {
-    pub fn new() -> Grid {
-        let size = super::config::SIZE;
-        let scale = super::config::SCALE;
-        let grid_count = size / scale;
-        let mut grid: Vec<Vec<Cell>> = Vec::new();
-
-        for _i in 0..grid_count {
-            let mut row = Vec::new();
-            for _j in 0..grid_count {
-                row.push(Cell {
-                    color: raylib::prelude::Color::BLACK,
-                    velocity: Velocity { x: 0.0, y: 0.0 },
-                    velocity_0: Velocity { x: 0.0, y: 0.0 },
-                    density: 0.0,
-                    density_0: 0.0,
-                });
-            }
-            grid.push(row);
-        }
-
-        Grid {
-            cells: grid,
-            scale,
-            size: grid_count,
-        }
-    }
-
-    pub fn draw(&self, d: &mut RaylibDrawHandle) {
-        for (row_idx, row) in self.cells.iter().enumerate() {
-            for (col_idx, value) in row.iter().enumerate() {
-                let y = (row_idx as i32) * (self.scale as i32);
-                let x = (col_idx as i32) * (self.scale as i32);
-                d.draw_rectangle(x, y, self.scale as i32, self.scale as i32, value.color);
-            }
         }
     }
 }

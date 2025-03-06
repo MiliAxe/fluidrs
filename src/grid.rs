@@ -1,4 +1,4 @@
-use raylib::prelude::{Color, Vector2};
+use raylib::prelude::*;
 
 pub struct Velocity {
     pub x: f32,
@@ -33,6 +33,9 @@ impl Grid {
     }
 
     pub fn add_density(&mut self, x: usize, y: usize, amount: f32) {
+        if x >= self.size || y >= self.size {
+            return;
+        }
         self.cells[y][x].density += amount;
     }
 
@@ -150,5 +153,41 @@ impl Grid {
         }
 
         self.set_bnd_generic(action_type, get, set);
+    }
+    pub fn new() -> Grid {
+        let size = super::config::SIZE;
+        let scale = super::config::SCALE;
+        let grid_count = size / scale;
+        let mut grid: Vec<Vec<Cell>> = Vec::new();
+
+        for _i in 0..grid_count {
+            let mut row = Vec::new();
+            for _j in 0..grid_count {
+                row.push(Cell {
+                    color: raylib::prelude::Color::BLACK,
+                    velocity: Velocity { x: 0.0, y: 0.0 },
+                    velocity_0: Velocity { x: 0.0, y: 0.0 },
+                    density: 0.0,
+                    density_0: 0.0,
+                });
+            }
+            grid.push(row);
+        }
+
+        Grid {
+            cells: grid,
+            scale,
+            size: grid_count,
+        }
+    }
+
+    pub fn draw(&self, d: &mut RaylibDrawHandle) {
+        for (row_idx, row) in self.cells.iter().enumerate() {
+            for (col_idx, value) in row.iter().enumerate() {
+                let y = (row_idx as i32) * (self.scale as i32);
+                let x = (col_idx as i32) * (self.scale as i32);
+                d.draw_rectangle(x, y, self.scale as i32, self.scale as i32, value.color);
+            }
+        }
     }
 }
