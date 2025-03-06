@@ -11,10 +11,5 @@ fn main() {
         .build();
 
     let mut simulator = grid::Simulator::new(config::VISC, config::DIFF, config::DT);
-    while !rl.window_should_close() {
-        simulator.update_mouse_density(&rl);
-        simulator.step();
-        let mut d = rl.begin_drawing(&thread);
-        simulator.draw(&mut d);
-    }
+    simulator.run(&mut rl, thread);
 }

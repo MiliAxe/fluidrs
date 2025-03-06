@@ -33,7 +33,7 @@ enum ActionType {
 }
 
 impl Grid {
-    fn add_velocity(&mut self, x: usize, y: usize, amount: Velocity) {
+    fn add_velocity(&mut self, x: usize, y: usize, amount: Vector2) {
         let old_velocity = &mut self.cells[y][x].velocity;
         old_velocity.x += amount.x;
         old_velocity.y += amount.y;
@@ -402,6 +402,43 @@ impl Simulator {
                     self.grid.add_density(cell_x + i, cell_y + j, 1000.0);
                 }
             }
+        }
+    }
+
+    pub fn update_mouse_velocity(&mut self, rl: &RaylibHandle, last_mouse_pos: &mut Option<Vector2>) {
+        if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+            if last_mouse_pos.is_none() {
+                *last_mouse_pos = Some(rl.get_mouse_position());
+            }
+
+            let current_mouse_pos = rl.get_mouse_position();
+            let velocity_vector = Vector2::new(
+                (current_mouse_pos.x - last_mouse_pos.unwrap().x) * 5.0,
+                (current_mouse_pos.y - last_mouse_pos.unwrap().y) * 5.0,
+            );
+
+            let cell_x = (current_mouse_pos.x / self.grid.scale as f32) as usize;
+            let cell_y = (current_mouse_pos.y / self.grid.scale as f32) as usize;
+
+            self.grid.add_velocity(cell_x, cell_y, velocity_vector);
+
+            *last_mouse_pos = Some(current_mouse_pos);
+        }
+        else {
+            *last_mouse_pos = Option::<Vector2>::None;
+        }
+    }
+
+    pub fn run(&mut self, rl: &mut RaylibHandle, thread: RaylibThread) {
+        let mut last_mouse_pos = Option::<Vector2>::None;
+
+        while !rl.window_should_close() {
+            self.update_mouse_density(rl);
+            self.update_mouse_velocity(rl, &mut last_mouse_pos);
+
+            let mut d = rl.begin_drawing(&thread);
+            self.step();
+            self.draw(&mut d);
         }
     }
 }
