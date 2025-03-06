@@ -10,11 +10,11 @@ fn main() {
         .title("fluidrs")
         .build();
 
-    let mut simulator = grid::Simulator::new(5.0, 2.0, 10.0);
+    let mut simulator = grid::Simulator::new(config::VISC, config::DIFF, config::DT);
     while !rl.window_should_close() {
-        let mut d = rl.begin_drawing(&thread);
-
+        simulator.update_mouse_density(&rl);
         simulator.step();
+        let mut d = rl.begin_drawing(&thread);
         simulator.draw(&mut d);
     }
 }
