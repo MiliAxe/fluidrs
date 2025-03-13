@@ -17,6 +17,14 @@ pub struct Simulator {
     imgui_context: imgui::Context,
     imgui_renderer: raylib_imgui_rs::Renderer,
     brush_size: usize,
+    brush_density: f32,
+    brush_type: BrushType,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum BrushType {
+    Filled,
+    Outline,
 }
 
 impl Simulator {
@@ -44,6 +52,8 @@ impl Simulator {
             imgui_context,
             imgui_renderer,
             brush_size: 1,
+            brush_density: 100.0,
+            brush_type: BrushType::Filled,
         }
     }
 
@@ -262,6 +272,84 @@ impl Simulator {
         self.imgui_renderer.render(&mut self.imgui_context, &mut d);
     }
 
+    fn draw_filled_circle(&mut self, cell_x: usize, cell_y: usize) {
+        let radius = self.brush_size as i32; // Or calculate an actual circle radius
+
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                // Only apply if within the circle of given radius. You can adjust the condition as needed.
+                if dx * dx + dy * dy <= radius * radius {
+                    let draw_x = (cell_x as i32 + dx).max(0) as usize;
+                    let draw_y = (cell_y as i32 + dy).max(0) as usize;
+                    self.grid.add_density(draw_x, draw_y, self.brush_density);
+                }
+            }
+        }
+    }
+
+    fn draw_outline_circle(&mut self, cell_x: usize, cell_y: usize) {
+            let mut x: i32 = 0;
+            let mut y: i32 = -(self.brush_size as i32);
+
+            let mut p: i32 = -(self.brush_size as i32);
+
+            let calculcate_draw_pos =
+                |cell_pos: usize, cell_dif: i32| (cell_pos as i32 + cell_dif).max(0) as usize;
+
+            while x < -y {
+                if p > 0 {
+                    y += 1;
+                    p += 2 * (x + y) + 1;
+                } else {
+                    p += 2 * x + 1;
+                }
+
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, x),
+                    calculcate_draw_pos(cell_y, y),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, x),
+                    calculcate_draw_pos(cell_y, -y),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, -x),
+                    calculcate_draw_pos(cell_y, y),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, -x),
+                    calculcate_draw_pos(cell_y, -y),
+                    self.brush_density,
+                );
+
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, y),
+                    calculcate_draw_pos(cell_y, x),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, y),
+                    calculcate_draw_pos(cell_y, -x),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, -y),
+                    calculcate_draw_pos(cell_y, x),
+                    self.brush_density,
+                );
+                self.grid.add_density(
+                    calculcate_draw_pos(cell_x, -y),
+                    calculcate_draw_pos(cell_y, -x),
+                    self.brush_density,
+                );
+
+                x += 1;
+            }
+    }
+
     pub fn update_mouse_density(&mut self) {
         if self
             .raylib_handle
@@ -272,20 +360,16 @@ impl Simulator {
             let cell_x = (mouse_pos.x / self.grid.scale as f32) as usize;
             let cell_y = (mouse_pos.y / self.grid.scale as f32) as usize;
 
-            // add density to a 10x10 square
-            for i in 0..self.brush_size {
-                for j in 0..self.brush_size {
-                    self.grid.add_density(cell_x.saturating_add(i), cell_y.saturating_add(j), 100.0);
-                    self.grid.add_density(cell_x.saturating_sub(i), cell_y.saturating_sub(j), 100.0);
-                    self.grid.add_density(cell_x.saturating_add(i), cell_y.saturating_sub(j), 100.0);
-                    self.grid.add_density(cell_x.saturating_sub(i), cell_y.saturating_add(j), 100.0);
-                }
+            match self.brush_type {
+                BrushType::Filled => self.draw_filled_circle(cell_x, cell_y),
+                BrushType::Outline => self.draw_outline_circle(cell_x, cell_y),
             }
         }
     }
 
     fn render_ui(&mut self) {
-        self.imgui_renderer.update(&mut self.imgui_context, &mut self.raylib_handle);
+        self.imgui_renderer
+            .update(&mut self.imgui_context, &mut self.raylib_handle);
         let ui = self.imgui_context.frame();
 
         let mut viscosity_slider_value = (self.viscosity * 10000.0) as i32;
@@ -295,8 +379,24 @@ impl Simulator {
             .size([300.0, 100.0], imgui::Condition::FirstUseEver)
             .build(|| {
                 ui.slider("Viscosity", 0, 100, &mut viscosity_slider_value);
-                ui.slider("Diffusion",  0, 100, &mut diffusion_slider_value);
-                ui.slider("Brush Size", 1, 10, &mut self.brush_size);
+                ui.slider("Diffusion", 0, 100, &mut diffusion_slider_value);
+                ui.slider("Brush Size", 1, 100, &mut self.brush_size);
+                ui.slider("Brush Density", 1.0, 1000.0, &mut self.brush_density);
+
+                let mut current_brush = match self.brush_type {
+                    BrushType::Filled => 0,
+                    BrushType::Outline => 1,
+                };
+                if ui.combo("Brush Type", &mut current_brush, &["Filled Circle", "Circle Outline"], |item| {
+                    std::borrow::Cow::Borrowed(item)
+                }) {
+                    self.brush_type = match current_brush {
+                        0 => BrushType::Filled,
+                        1 => BrushType::Outline,
+                        _ => panic!("Invalid brush type"),
+                    };
+                }
+
             });
 
         self.viscosity = viscosity_slider_value as f32 / 10000.0;
@@ -322,12 +422,28 @@ impl Simulator {
             let cell_y = (current_mouse_pos.y / self.grid.scale as f32) as usize;
 
             // self.grid.add_velocity(cell_x, cell_y, velocity_vector);
-            for i in 0..self.brush_size/2 {
-                for j in 0..self.brush_size/2 {
-                    self.grid.add_velocity(cell_x.saturating_add(i), cell_y.saturating_add(j), velocity_vector);
-                    self.grid.add_velocity(cell_x.saturating_sub(i), cell_y.saturating_sub(j), velocity_vector);
-                    self.grid.add_velocity(cell_x.saturating_add(i), cell_y.saturating_sub(j), velocity_vector);
-                    self.grid.add_velocity(cell_x.saturating_sub(i), cell_y.saturating_add(j), velocity_vector);
+            for i in 0..self.brush_size / 2 {
+                for j in 0..self.brush_size / 2 {
+                    self.grid.add_velocity(
+                        cell_x.saturating_add(i),
+                        cell_y.saturating_add(j),
+                        velocity_vector,
+                    );
+                    self.grid.add_velocity(
+                        cell_x.saturating_sub(i),
+                        cell_y.saturating_sub(j),
+                        velocity_vector,
+                    );
+                    self.grid.add_velocity(
+                        cell_x.saturating_add(i),
+                        cell_y.saturating_sub(j),
+                        velocity_vector,
+                    );
+                    self.grid.add_velocity(
+                        cell_x.saturating_sub(i),
+                        cell_y.saturating_add(j),
+                        velocity_vector,
+                    );
                 }
             }
 

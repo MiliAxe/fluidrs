@@ -27,6 +27,9 @@ pub enum ActionType {
 
 impl Grid {
     pub fn add_velocity(&mut self, x: usize, y: usize, amount: Vector2) {
+        if x >= self.size || y >= self.size {
+            return;
+        }
         let old_velocity = &mut self.cells[y][x].velocity;
         old_velocity.x += amount.x;
         old_velocity.y += amount.y;
