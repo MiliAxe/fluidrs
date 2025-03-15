@@ -19,6 +19,7 @@ pub struct Simulator {
     brush_size: usize,
     brush_density: f32,
     brush_type: BrushType,
+    last_mouse_pos: Option<Vector2>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -54,6 +55,7 @@ impl Simulator {
             brush_size: 1,
             brush_density: 100.0,
             brush_type: BrushType::Filled,
+            last_mouse_pos: Option::<Vector2>::None,
         }
     }
 
@@ -288,66 +290,66 @@ impl Simulator {
     }
 
     fn draw_outline_circle(&mut self, cell_x: usize, cell_y: usize) {
-            let mut x: i32 = 0;
-            let mut y: i32 = -(self.brush_size as i32);
+        let mut x: i32 = 0;
+        let mut y: i32 = -(self.brush_size as i32);
 
-            let mut p: i32 = -(self.brush_size as i32);
+        let mut p: i32 = -(self.brush_size as i32);
 
-            let calculcate_draw_pos =
-                |cell_pos: usize, cell_dif: i32| (cell_pos as i32 + cell_dif).max(0) as usize;
+        let calculcate_draw_pos =
+            |cell_pos: usize, cell_dif: i32| (cell_pos as i32 + cell_dif).max(0) as usize;
 
-            while x < -y {
-                if p > 0 {
-                    y += 1;
-                    p += 2 * (x + y) + 1;
-                } else {
-                    p += 2 * x + 1;
-                }
-
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, x),
-                    calculcate_draw_pos(cell_y, y),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, x),
-                    calculcate_draw_pos(cell_y, -y),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, -x),
-                    calculcate_draw_pos(cell_y, y),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, -x),
-                    calculcate_draw_pos(cell_y, -y),
-                    self.brush_density,
-                );
-
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, y),
-                    calculcate_draw_pos(cell_y, x),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, y),
-                    calculcate_draw_pos(cell_y, -x),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, -y),
-                    calculcate_draw_pos(cell_y, x),
-                    self.brush_density,
-                );
-                self.grid.add_density(
-                    calculcate_draw_pos(cell_x, -y),
-                    calculcate_draw_pos(cell_y, -x),
-                    self.brush_density,
-                );
-
-                x += 1;
+        while x < -y {
+            if p > 0 {
+                y += 1;
+                p += 2 * (x + y) + 1;
+            } else {
+                p += 2 * x + 1;
             }
+
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, x),
+                calculcate_draw_pos(cell_y, y),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, x),
+                calculcate_draw_pos(cell_y, -y),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, -x),
+                calculcate_draw_pos(cell_y, y),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, -x),
+                calculcate_draw_pos(cell_y, -y),
+                self.brush_density,
+            );
+
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, y),
+                calculcate_draw_pos(cell_y, x),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, y),
+                calculcate_draw_pos(cell_y, -x),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, -y),
+                calculcate_draw_pos(cell_y, x),
+                self.brush_density,
+            );
+            self.grid.add_density(
+                calculcate_draw_pos(cell_x, -y),
+                calculcate_draw_pos(cell_y, -x),
+                self.brush_density,
+            );
+
+            x += 1;
+        }
     }
 
     pub fn update_mouse_density(&mut self) {
@@ -367,7 +369,7 @@ impl Simulator {
         }
     }
 
-    fn render_ui(&mut self) {
+    fn handle_ui(&mut self) -> &mut imgui::Ui {
         self.imgui_renderer
             .update(&mut self.imgui_context, &mut self.raylib_handle);
         let ui = self.imgui_context.frame();
@@ -387,35 +389,39 @@ impl Simulator {
                     BrushType::Filled => 0,
                     BrushType::Outline => 1,
                 };
-                if ui.combo("Brush Type", &mut current_brush, &["Filled Circle", "Circle Outline"], |item| {
-                    std::borrow::Cow::Borrowed(item)
-                }) {
+                if ui.combo(
+                    "Brush Type",
+                    &mut current_brush,
+                    &["Filled Circle", "Circle Outline"],
+                    |item| std::borrow::Cow::Borrowed(item),
+                ) {
                     self.brush_type = match current_brush {
                         0 => BrushType::Filled,
                         1 => BrushType::Outline,
                         _ => panic!("Invalid brush type"),
                     };
                 }
-
             });
 
         self.viscosity = viscosity_slider_value as f32 / 10000.0;
         self.diffusion = diffusion_slider_value as f32 / 100000.0;
+
+        ui
     }
 
-    pub fn update_mouse_velocity(&mut self, last_mouse_pos: &mut Option<Vector2>) {
+    pub fn update_mouse_velocity(&mut self) {
         if self
             .raylib_handle
             .is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT)
         {
-            if last_mouse_pos.is_none() {
-                *last_mouse_pos = Some(self.raylib_handle.get_mouse_position());
+            if self.last_mouse_pos.is_none() {
+                self.last_mouse_pos = Some(self.raylib_handle.get_mouse_position());
             }
 
             let current_mouse_pos = self.raylib_handle.get_mouse_position();
             let velocity_vector = Vector2::new(
-                (current_mouse_pos.x - last_mouse_pos.unwrap().x) * 2.0,
-                (current_mouse_pos.y - last_mouse_pos.unwrap().y) * 2.0,
+                (current_mouse_pos.x - self.last_mouse_pos.unwrap().x) * 2.0,
+                (current_mouse_pos.y - self.last_mouse_pos.unwrap().y) * 2.0,
             );
 
             let cell_x = (current_mouse_pos.x / self.grid.scale as f32) as usize;
@@ -447,22 +453,30 @@ impl Simulator {
                 }
             }
 
-            *last_mouse_pos = Some(current_mouse_pos);
+            self.last_mouse_pos = Some(current_mouse_pos);
         } else {
-            *last_mouse_pos = Option::<Vector2>::None;
+            self.last_mouse_pos = Option::<Vector2>::None;
         }
     }
 
+    fn handle_mouse_simulator(&mut self) {
+        self.update_mouse_density();
+        self.update_mouse_velocity();
+    }
+
     pub fn run(&mut self) {
-        let mut last_mouse_pos = Option::<Vector2>::None;
-
         while !self.raylib_handle.window_should_close() {
-            self.update_mouse_density();
-            self.update_mouse_velocity(&mut last_mouse_pos);
-
-            self.render_ui();
-
             self.step();
+
+            let want_capture_mouse = {
+                let ui = self.handle_ui();
+                ui.io().want_capture_mouse
+            };
+
+            if !want_capture_mouse {
+                self.handle_mouse_simulator();
+            }
+
             self.draw();
         }
     }
