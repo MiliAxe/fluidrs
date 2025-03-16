@@ -1,3 +1,4 @@
+use colorgrad::{BasisGradient, Gradient};
 use raylib::prelude::*;
 
 pub struct Velocity {
@@ -17,6 +18,7 @@ pub struct Grid {
     pub cells: Vec<Vec<Cell>>,
     pub scale: usize,
     pub size: usize,
+    pub color_grad: BasisGradient,
 }
 
 pub enum ActionType {
@@ -45,13 +47,15 @@ impl Grid {
     pub fn update_cell_colors(&mut self) {
         for row in self.cells.iter_mut() {
             for cell in row.iter_mut() {
-                let color_intensity = cell.density.clamp(0.0, 255.0) as u8;
+                let color_intensity = cell.density.clamp(0.0, 255.0);
+                let color_intensity_normalize = color_intensity / 255.0;
+                let color = self.color_grad.at(color_intensity_normalize).to_rgba8();
 
-                cell.color = Color {
-                    r: color_intensity,
-                    g: color_intensity,
-                    b: color_intensity,
-                    a: 255,
+                cell.color = raylib::prelude::Color {
+                    r: color[0],
+                    g: color[1],
+                    b: color[2],
+                    a: color[3],
                 };
             }
         }
@@ -65,7 +69,7 @@ impl Grid {
         // I am totally aware of the fact that this function is super
         // unreadable. This is merely a copy paste of mike ash's code
         // for my own implementation
-        for x in 1..(self.size - 1) {
+        for x in 1..(self.size) {
             let left_value = get(&self.cells[1][x]);
             let right_value = get(&self.cells[self.size - 2][x]);
             match action_type {
@@ -84,7 +88,7 @@ impl Grid {
             }
         }
 
-        for y in 1..(self.size - 1) {
+        for y in 1..(self.size) {
             let top_value = get(&self.cells[y][1]);
             let bottom_value = get(&self.cells[y][self.size - 2]);
             match action_type {
@@ -181,6 +185,7 @@ impl Grid {
             cells: grid,
             scale,
             size: grid_count,
+            color_grad: colorgrad::preset::inferno(),
         }
     }
 
