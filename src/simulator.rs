@@ -1,4 +1,5 @@
 use crate::grid::{ActionType, Cell, Grid};
+use colorgrad::BasisGradient;
 use imgui::Context;
 use raylib::prelude::*;
 use raylib_imgui_rs::Renderer;
@@ -19,6 +20,7 @@ pub struct Simulator {
     brush_size: usize,
     brush_density: f32,
     brush_type: BrushType,
+    gradient_index: usize,
     last_mouse_pos: Option<Vector2>,
 }
 
@@ -54,6 +56,7 @@ impl Simulator {
             imgui_renderer,
             brush_size: 1,
             brush_density: 100.0,
+            gradient_index: 0,
             brush_type: BrushType::Filled,
             last_mouse_pos: Option::<Vector2>::None,
         }
@@ -369,6 +372,20 @@ impl Simulator {
         }
     }
 
+    fn available_gradients() -> Vec<(&'static str, BasisGradient)> {
+        vec![
+            ("Inferno", colorgrad::preset::inferno()),
+            ("Viridis", colorgrad::preset::viridis()),
+            ("Plasma", colorgrad::preset::plasma()),
+            ("Magma", colorgrad::preset::magma()),
+            ("Gray", colorgrad::preset::greys()),
+            ("Blues", colorgrad::preset::blues()),
+            ("Greens", colorgrad::preset::greens()),
+            ("Reds", colorgrad::preset::reds()),
+
+        ]
+    } 
+
     fn handle_ui(&mut self) -> &mut imgui::Ui {
         self.imgui_renderer
             .update(&mut self.imgui_context, &mut self.raylib_handle);
@@ -376,6 +393,9 @@ impl Simulator {
 
         let mut viscosity_slider_value = (self.viscosity * 10000.0) as i32;
         let mut diffusion_slider_value = (self.diffusion * 100000.0) as i32;
+
+        let gradients = Simulator::available_gradients();
+        let gradient_names: Vec<&str> = gradients.iter().map(|(name, _)| *name).collect();
 
         ui.window("Settings")
             .size([300.0, 100.0], imgui::Condition::FirstUseEver)
@@ -401,7 +421,10 @@ impl Simulator {
                         _ => panic!("Invalid brush type"),
                     };
                 }
-            });
+
+                if ui.combo("Gradient", &mut self.gradient_index, &gradient_names, |item| std::borrow::Cow::Borrowed(item)) {
+                    self.grid.color_grad = gradients[self.gradient_index].1.clone();
+                }});
 
         self.viscosity = viscosity_slider_value as f32 / 10000.0;
         self.diffusion = diffusion_slider_value as f32 / 100000.0;
