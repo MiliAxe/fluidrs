@@ -403,7 +403,7 @@ impl Simulator {
                 ui.slider("Viscosity", 0, 100, &mut viscosity_slider_value);
                 ui.slider("Diffusion", 0, 100, &mut diffusion_slider_value);
                 ui.slider("Brush Size", 1, 100, &mut self.brush_size);
-                ui.slider("Brush Density", 1.0, 1000.0, &mut self.brush_density);
+                ui.slider("Brush Density", 1.0, 255.0, &mut self.brush_density);
 
                 let mut current_brush = match self.brush_type {
                     BrushType::Filled => 0,
