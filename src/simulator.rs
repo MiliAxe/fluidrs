@@ -1,8 +1,9 @@
 use crate::grid::{ActionType, Cell, Grid};
-use colorgrad::BasisGradient;
+use colorgrad::Gradient;
 use imgui::Context;
 use raylib::prelude::*;
 use raylib_imgui_rs::Renderer;
+use std::sync::Arc;
 
 enum ProjectAction {
     ToPrevious,
@@ -372,19 +373,23 @@ impl Simulator {
         }
     }
 
-    fn available_gradients() -> Vec<(&'static str, BasisGradient)> {
+    fn available_gradients() -> Vec<(&'static str, Arc<dyn Gradient>)> {
         vec![
-            ("Inferno", colorgrad::preset::inferno()),
-            ("Viridis", colorgrad::preset::viridis()),
-            ("Plasma", colorgrad::preset::plasma()),
-            ("Magma", colorgrad::preset::magma()),
-            ("Gray", colorgrad::preset::greys()),
-            ("Blues", colorgrad::preset::blues()),
-            ("Greens", colorgrad::preset::greens()),
-            ("Reds", colorgrad::preset::reds()),
-
+            ("Inferno", Arc::new(colorgrad::preset::inferno())),
+            ("Viridis", Arc::new(colorgrad::preset::viridis())),
+            ("Plasma", Arc::new(colorgrad::preset::plasma())),
+            ("Magma", Arc::new(colorgrad::preset::magma())),
+            ("Gray", Arc::new(colorgrad::preset::greys())),
+            ("Blues", Arc::new(colorgrad::preset::blues())),
+            ("Greens", Arc::new(colorgrad::preset::greens())),
+            ("Reds", Arc::new(colorgrad::preset::reds())),
+            ("Spectral", Arc::new(colorgrad::preset::spectral())),
+            ("Warm", Arc::new(colorgrad::preset::warm())),
+            ("Cool", Arc::new(colorgrad::preset::cool())),
+            ("Rainbow", Arc::new(colorgrad::preset::rainbow())),
+            ("Turbo", Arc::new(colorgrad::preset::turbo())),
         ]
-    } 
+    }
 
     fn handle_ui(&mut self) -> &mut imgui::Ui {
         self.imgui_renderer
@@ -422,9 +427,15 @@ impl Simulator {
                     };
                 }
 
-                if ui.combo("Gradient", &mut self.gradient_index, &gradient_names, |item| std::borrow::Cow::Borrowed(item)) {
+                if ui.combo(
+                    "Gradient",
+                    &mut self.gradient_index,
+                    &gradient_names,
+                    |item| std::borrow::Cow::Borrowed(item),
+                ) {
                     self.grid.color_grad = gradients[self.gradient_index].1.clone();
-                }});
+                }
+            });
 
         self.viscosity = viscosity_slider_value as f32 / 10000.0;
         self.diffusion = diffusion_slider_value as f32 / 100000.0;

@@ -1,5 +1,5 @@
-use colorgrad::{BasisGradient, Gradient};
 use raylib::prelude::*;
+use std::sync::Arc;
 
 pub struct Velocity {
     pub x: f32,
@@ -18,7 +18,7 @@ pub struct Grid {
     pub cells: Vec<Vec<Cell>>,
     pub scale: usize,
     pub size: usize,
-    pub color_grad: BasisGradient,
+    pub color_grad: Arc<dyn colorgrad::Gradient>,
 }
 
 pub enum ActionType {
@@ -185,7 +185,7 @@ impl Grid {
             cells: grid,
             scale,
             size: grid_count,
-            color_grad: colorgrad::preset::inferno(),
+            color_grad: Arc::new(colorgrad::preset::inferno()),
         }
     }
 
