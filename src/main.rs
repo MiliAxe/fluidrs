@@ -1,10 +1,11 @@
+mod app;
 mod config;
 mod grid;
 mod simulator;
 
-use simulator::Simulator;
+use app::App;
 
 fn main() {
-    let mut simulator = Simulator::new(config::VISC, config::DIFF, config::DT);
-    simulator.run();
+    let mut app = App::new();
+    app.run();
 }

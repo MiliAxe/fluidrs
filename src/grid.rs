@@ -88,14 +88,4 @@ impl Grid {
             color_grad: Arc::new(colorgrad::preset::inferno()),
         }
     }
-
-    pub fn draw(&self, d: &mut RaylibDrawHandle) {
-        for (row_idx, row) in self.cells.iter().enumerate() {
-            for (col_idx, value) in row.iter().enumerate() {
-                let y = (row_idx as i32) * (self.scale as i32);
-                let x = (col_idx as i32) * (self.scale as i32);
-                d.draw_rectangle(x, y, self.scale as i32, self.scale as i32, value.color);
-            }
-        }
-    }
 }
