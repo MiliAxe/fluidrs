@@ -97,6 +97,112 @@ impl Simulator {
         }
     }
 
+    pub fn set_bnd_generic<FGet, FSet>(&mut self, action_type: ActionType, get: FGet, set: FSet)
+    where
+        FGet: Fn(&Cell) -> f32,
+        FSet: Fn(&mut Cell, f32),
+    {
+        // I am totally aware of the fact that this function is super
+        // unreadable. This is merely a copy paste of mike ash's code
+        // for my own implementation
+        for x in 1..(self.grid.size) {
+            let left_value = get(&self.grid.cells[1][x]);
+            let right_value = get(&self.grid.cells[self.grid.size - 2][x]);
+            match action_type {
+                ActionType::VelX => {
+                    set(&mut self.grid.cells[0][x], left_value);
+                    set(&mut self.grid.cells[self.grid.size - 1][x], right_value);
+                }
+                ActionType::VelY => {
+                    set(&mut self.grid.cells[0][x], -left_value);
+                    set(&mut self.grid.cells[self.grid.size - 1][x], -right_value);
+                }
+                ActionType::Density => {
+                    set(&mut self.grid.cells[0][x], left_value);
+                    set(&mut self.grid.cells[self.grid.size - 1][x], right_value);
+                }
+            }
+        }
+
+        for y in 1..(self.grid.size) {
+            let top_value = get(&self.grid.cells[y][1]);
+            let bottom_value = get(&self.grid.cells[y][self.grid.size - 2]);
+            match action_type {
+                ActionType::VelX => {
+                    set(&mut self.grid.cells[y][0], -top_value);
+                    set(&mut self.grid.cells[y][self.grid.size - 1], -bottom_value);
+                }
+                ActionType::VelY => {
+                    set(&mut self.grid.cells[y][0], top_value);
+                    set(&mut self.grid.cells[y][self.grid.size - 1], bottom_value);
+                }
+                ActionType::Density => {
+                    set(&mut self.grid.cells[y][0], top_value);
+                    set(&mut self.grid.cells[y][self.grid.size - 1], bottom_value);
+                }
+            }
+        }
+
+        let top_left = 0.5 * (get(&mut self.grid.cells[0][1]) + get(&mut self.grid.cells[1][0]));
+        let top_right = 0.5
+            * (get(&mut self.grid.cells[1][self.grid.size - 1])
+                + get(&mut self.grid.cells[0][self.grid.size - 2]));
+        let bottom_left = 0.5
+            * (get(&mut self.grid.cells[self.grid.size - 2][0])
+                + get(&mut self.grid.cells[self.grid.size - 1][1]));
+        let bottom_right = 0.5
+            * (get(&mut self.grid.cells[self.grid.size - 1][self.grid.size - 2])
+                + get(&mut self.grid.cells[self.grid.size - 2][self.grid.size - 1]));
+
+        set(&mut self.grid.cells[0][0], top_left);
+        set(&mut self.grid.cells[0][self.grid.size - 1], top_right);
+        set(&mut self.grid.cells[self.grid.size - 1][0], bottom_left);
+        set(
+            &mut self.grid.cells[self.grid.size - 1][self.grid.size - 1],
+            bottom_right,
+        );
+    }
+
+    pub fn lin_solve_generic<FSet, FGet, FPrevGet>(
+        &mut self,
+        action_type: ActionType,
+        get: FGet,
+        prev_get: FPrevGet,
+        set: FSet,
+        a: f32,
+        c: f32,
+    ) where
+        FSet: Fn(&mut Cell, f32),
+        FGet: Fn(&Cell) -> f32,
+        FPrevGet: Fn(&Cell) -> f32,
+    {
+        let c_recip = 1.0 / c;
+        for _k in 0..super::config::ITER {
+            for y in 1..(self.grid.size - 1) {
+                for x in 1..(self.grid.size - 1) {
+                    let previous_element = prev_get(&self.grid.cells[y][x]);
+
+                    let left_neighbor = get(&self.grid.cells[y][x - 1]);
+                    let right_neighbor = get(&self.grid.cells[y][x + 1]);
+                    let bottom_neighbor = get(&self.grid.cells[y - 1][x]);
+                    let top_neighbor = get(&self.grid.cells[y + 1][x]);
+
+                    set(
+                        &mut self.grid.cells[y][x],
+                        (previous_element
+                            + a * (left_neighbor
+                                + right_neighbor
+                                + bottom_neighbor
+                                + top_neighbor))
+                            * c_recip,
+                    );
+                }
+            }
+        }
+
+        self.set_bnd_generic(action_type, get, set);
+    }
+
     fn diffuse(&mut self, action_type: ActionType) {
         let spread_factor = match action_type {
             ActionType::VelX | ActionType::VelY => self.viscosity,
@@ -125,8 +231,7 @@ impl Simulator {
             ActionType::Density => |cell: &mut Cell, value: f32| cell.density_0 = value,
         };
 
-        self.grid
-            .lin_solve_generic(action_type, get, prev_get, set, a, 1.0 + 6.0 * a);
+        self.lin_solve_generic(action_type, get, prev_get, set, a, 1.0 + 6.0 * a);
     }
 
     fn project(&mut self, action_type: ProjectAction) {
@@ -179,11 +284,9 @@ impl Simulator {
             }
         }
 
-        self.grid
-            .set_bnd_generic(ActionType::Density, get_div, set_div);
-        self.grid
-            .set_bnd_generic(ActionType::Density, get_pressure, set_pressure);
-        self.grid.lin_solve_generic(
+        self.set_bnd_generic(ActionType::Density, get_div, set_div);
+        self.set_bnd_generic(ActionType::Density, get_pressure, set_pressure);
+        self.lin_solve_generic(
             ActionType::Density,
             get_pressure,
             get_div,
@@ -211,8 +314,8 @@ impl Simulator {
             }
         }
 
-        self.grid.set_bnd_generic(ActionType::VelX, get_x, set_x);
-        self.grid.set_bnd_generic(ActionType::VelY, get_y, set_y);
+        self.set_bnd_generic(ActionType::VelX, get_x, set_x);
+        self.set_bnd_generic(ActionType::VelY, get_y, set_y);
     }
 
     fn advect(&mut self, action_type: ActionType) {
@@ -285,8 +388,7 @@ impl Simulator {
             ActionType::Density => |cell: &Cell| cell.density,
         };
 
-        self.grid
-            .set_bnd_generic(action_type, get_current, set_current);
+        self.set_bnd_generic(action_type, get_current, set_current);
     }
 
     pub fn step(&mut self) {
