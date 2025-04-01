@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-raylib = "5.0"
+raylib = "5.5.1"
 rand = "0.9.0"
 raylib_imgui_rs = "0.2.0"
 imgui = "0.12.0"
