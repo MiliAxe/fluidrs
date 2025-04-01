@@ -9,6 +9,40 @@ enum ProjectAction {
     ToPrevious,
     ToCurrent,
 }
+
+/*
+ TODO: Separate the UI from the simulator logic. We don't really like it
+ when the simulator is bloated with a bunch of UI related variables like
+ brush size and density. One huge struct is not a good design choice.
+ One problem we will have though is that the simulator will need the data
+ of the UI to draw the fluid. Maybe we can write an interface so that the
+ code follows the SOLID principles. But is it really worth the hassle of
+ doing that? Hmm, Now that I think about it, brush size and density are
+ properties of the simulator. The UI is just a way to change them.
+ Maybe we can set the ultimate goal to this: "Enable other developers
+ to be able to import this library and use it to simulate fluid properties
+ without having to worry about the details of the implementation".
+
+ So I think we are better off defining core values for each struct.
+
+ **Grid**:  This module is responsible for holding the data of the simulation.
+            It is a 2D array of cells. Each cell has a density and velocity value.
+            It has nothing to do with the simulation logic. We are just having a data
+            structure here. This means we have to remove the set_bnd_generic and the
+            lin_solve_generic functions from this module. They are not related to the
+            grid at all.
+
+ **Simulator**: This module is responsible for the simulation logic. It is supposed to
+            use the grid to store the data. It is responsible for making the fluid move
+            and for applying the changes in the fluid that is caused by the velocity
+            vectors.
+
+  **UI**:   This module is responsible for the user interface. It is supposed to handle
+            showing the fluid and applying the changes that is done via the brush. It is
+            also responsible for handling the mouse events and the keyboard events. The ui
+            will be handled via imgui and raylib.
+*/
+
 pub struct Simulator {
     grid: Grid,
     viscosity: f32,
